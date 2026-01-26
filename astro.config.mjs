@@ -10,9 +10,13 @@ export default defineConfig({
       logo: {
         src: './src/assets/fox-logo.svg',
       },
-      social: {
-        github: 'https://github.com/fox-gonic/fox',
-      },
+      social: [
+        {
+          label: 'GitHub',
+          icon: 'github',
+          href: 'https://github.com/fox-gonic/fox',
+        },
+      ],
       defaultLocale: 'root',
       locales: {
         root: {
