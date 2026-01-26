@@ -13,31 +13,36 @@
   --sl-color-bg-sidebar: 15, 15, 15;
 }
 
-/* Fixed navigation bar with solid background */
-header,
-.header,
-[data-theme='dark'] header,
-[data-theme='dark'] .header {
-  background-color: rgb(0, 0, 0) !important;
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Starlight specific header selectors */
+/* Navigation bar - semi-transparent glass effect */
+header.header,
+body > header,
+body > header.header,
 .sl-flex.header {
-  background-color: rgb(0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(237, 107, 53, 0.25) !important;
 }
 
-/* Ensure the main header container is opaque */
-body > header {
-  background-color: rgb(0, 0, 0) !important;
+/* Light theme */
+:root:not([data-theme='dark']) header.header,
+:root:not([data-theme='dark']) body > header,
+:root:not([data-theme='dark']) .sl-flex.header {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(237, 107, 53, 0.2) !important;
+}
+
+/* Dark theme (default) */
+[data-theme='dark'] header.header,
+[data-theme='dark'] body > header {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  border-bottom: 1px solid rgba(237, 107, 53, 0.3) !important;
 }
 
 /* Hero section styles */
 .hero {
   text-align: center;
   padding: 4rem 1rem;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(237,107,53,0.1) 100%);
 }
 
 .hero h1 {
@@ -63,28 +68,46 @@ body > header {
   flex-wrap: wrap;
 }
 
-.hero-actions .action {
-  padding: 0.75rem 2rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s;
+/* Hero action buttons */
+.sl-link-button {
+  font-weight: 600 !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
-.hero-actions .action.primary {
-  background: linear-gradient(135deg, #ff6b35 0%, #ff9068 100%);
-  color: white;
+/* Primary button - orange gradient with white text */
+.sl-link-button.primary {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff9068 100%) !important;
+  border-color: #ff6b35 !important;
+  color: #ffffff !important;
 }
 
-.hero-actions .action.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.hero-actions .action:hover {
+.sl-link-button.primary:hover {
+  color: #ffffff !important;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(237, 107, 53, 0.3);
+  box-shadow: 0 8px 16px rgba(237, 107, 53, 0.4);
+}
+
+/* Secondary button - dark theme (default) */
+.sl-link-button.secondary {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.sl-link-button.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Secondary button - light theme */
+:root:not([data-theme='dark']) .sl-link-button.secondary {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #333333 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+:root:not([data-theme='dark']) .sl-link-button.secondary:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 /* Feature cards grid */
@@ -95,6 +118,28 @@ body > header {
   padding: 3rem 1rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Starlight CardGrid - force 2 columns layout */
+.card-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 1.5rem !important;
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Disable stagger effect - remove translateY on even cards */
+.card-grid.stagger {
+  padding-bottom: 0 !important;
+}
+
+.card-grid.stagger > *:nth-child(2n) {
+  transform: none !important;
 }
 
 .feature-card {
