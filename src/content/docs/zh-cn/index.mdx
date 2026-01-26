@@ -1,0 +1,86 @@
+---
+title: Fox Web 框架
+description: 基于 Gin 的强大扩展，提供自动参数绑定和增强特性
+template: splash
+head: []
+hero:
+  title: Fox
+  tagline: 快速、灵活、强大的 Web 框架，基于 Gin 构建
+  image:
+    alt: Fox Web Framework Logo
+    html: '<img src="/fox-logo.svg" alt="Fox Logo" style="max-width: 400px; margin: 0 auto;" />'
+  actions:
+    - text: 快速开始
+      link: /zh-cn/guides/quickstart/
+      variant: primary
+    - text: 在 GitHub 查看
+      link: https://github.com/fox-gonic/fox
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## 特性
+
+<CardGrid stagger>
+  <Card title="🚀 自动参数绑定" icon="rocket">
+    通过结构体标签自动绑定 URI、查询字符串和 JSON 请求体参数
+  </Card>
+  <Card title="🌐 多域名路由" icon="globe">
+    基于域名的流量路由，支持精确匹配和正则表达式模式匹配
+  </Card>
+  <Card title="📝 结构化日志" icon="document">
+    内置日志系统，支持 TraceID、结构化字段和自动日志轮转
+  </Card>
+  <Card title="🛡️ 崩溃保护" icon="shield">
+    优雅的 panic 恢复机制，提供详细的错误日志和堆栈跟踪
+  </Card>
+  <Card title="⚡ 高性能" icon="lightning">
+    在 Gin 路由引擎之上仅增加最小开销，经过性能基准测试
+  </Card>
+  <Card title="🔌 中间件支持" icon="puzzle">
+    完全兼容 Gin 中间件生态系统
+  </Card>
+  <Card title="✅ 自定义验证" icon="approve-check">
+    实现 IsValider 接口以支持复杂的业务验证逻辑
+  </Card>
+  <Card title="🔄 100% Gin 兼容" icon="loop">
+    无缝使用任何现有的 Gin 中间件和处理器
+  </Card>
+</CardGrid>
+
+## 快速示例
+
+```go
+package main
+
+import (
+    "github.com/fox-gonic/fox"
+)
+
+type UserRequest struct {
+    Name  string `json:"name" binding:"required"`
+    Email string `json:"email" binding:"required,email"`
+}
+
+func main() {
+    r := fox.Default()
+
+    // 自动参数绑定和响应
+    r.POST("/user", func(req *UserRequest) (any, error) {
+        // 参数自动绑定和验证
+        return map[string]string{
+            "message": "用户创建成功",
+            "name":    req.Name,
+        }, nil
+    })
+
+    r.Run(":8080")
+}
+```
+
+## 为什么选择 Fox？
+
+Fox 在保持 100% 向后兼容的同时，为 Gin 增加了现代化的便利功能。通过自动参数绑定、灵活的响应处理和内置验证，编写更简洁、更易维护的代码。
+
+非常适合构建拥有大量端点的 REST API，让您专注于业务逻辑而不是样板代码。

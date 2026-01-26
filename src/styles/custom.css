@@ -1,0 +1,165 @@
+/* Custom styles for Fox website - matching gin-gonic.com design */
+
+:root {
+  --sl-color-accent: 237, 107, 53;
+  --sl-color-accent-low: 237, 107, 53;
+  --sl-color-accent-high: 255, 255, 255;
+}
+
+/* Dark theme by default */
+:root[data-theme='dark'] {
+  --sl-color-bg: 10, 10, 10;
+  --sl-color-bg-nav: 0, 0, 0;
+  --sl-color-bg-sidebar: 15, 15, 15;
+}
+
+/* Fixed navigation bar with solid background */
+header,
+.header,
+[data-theme='dark'] header,
+[data-theme='dark'] .header {
+  background-color: rgb(0, 0, 0) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Starlight specific header selectors */
+.sl-flex.header {
+  background-color: rgb(0, 0, 0) !important;
+}
+
+/* Ensure the main header container is opaque */
+body > header {
+  background-color: rgb(0, 0, 0) !important;
+}
+
+/* Hero section styles */
+.hero {
+  text-align: center;
+  padding: 4rem 1rem;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(237,107,53,0.1) 100%);
+}
+
+.hero h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff9068 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero .tagline {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hero-actions .action {
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-actions .action.primary {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff9068 100%);
+  color: white;
+}
+
+.hero-actions .action.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero-actions .action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(237, 107, 53, 0.3);
+}
+
+/* Feature cards grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 3rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  padding: 2rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Colorful card system - cycling through colors */
+.feature-card:nth-child(4n + 1) {
+  border-color: #ff6b35;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 107, 53, 0.05) 100%);
+}
+
+.feature-card:nth-child(4n + 2) {
+  border-color: #4ecdc4;
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(78, 205, 196, 0.05) 100%);
+}
+
+.feature-card:nth-child(4n + 3) {
+  border-color: #ff6b6b;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+}
+
+.feature-card:nth-child(4n + 4) {
+  border-color: #45b7d1;
+  background: linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(69, 183, 209, 0.05) 100%);
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: white;
+}
+
+.feature-card p {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+/* Icon styles for feature cards */
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero .tagline {
+    font-size: 1.2rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
