@@ -55,10 +55,20 @@ body > header.header,
   background-clip: text;
 }
 
-.hero .tagline {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2rem;
+/* Hero tagline - Starlight uses .tagline class */
+.hero .tagline,
+.sl-markdown-content .tagline,
+.tagline {
+  font-size: 1.5rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-bottom: 2rem !important;
+}
+
+/* Light theme tagline */
+:root:not([data-theme='dark']) .hero .tagline,
+:root:not([data-theme='dark']) .sl-markdown-content .tagline,
+:root:not([data-theme='dark']) .tagline {
+  color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .hero-actions {
