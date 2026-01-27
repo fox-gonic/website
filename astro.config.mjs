@@ -132,6 +132,48 @@ export default defineConfig({
                 'zh-CN': '基本用法',
               },
             },
+            {
+              label: 'Parameter Binding',
+              link: '/examples/binding/',
+              translations: {
+                'zh-CN': '参数绑定',
+              },
+            },
+            {
+              label: 'Middleware',
+              link: '/examples/middleware/',
+              translations: {
+                'zh-CN': '中间件',
+              },
+            },
+            {
+              label: 'Domain Routing',
+              link: '/examples/domain-routing/',
+              translations: {
+                'zh-CN': '域名路由',
+              },
+            },
+            {
+              label: 'Custom Validator',
+              link: '/examples/custom-validator/',
+              translations: {
+                'zh-CN': '自定义验证器',
+              },
+            },
+            {
+              label: 'Error Handling',
+              link: '/examples/error-handling/',
+              translations: {
+                'zh-CN': '错误处理',
+              },
+            },
+            {
+              label: 'Logger Configuration',
+              link: '/examples/logger-config/',
+              translations: {
+                'zh-CN': '日志配置',
+              },
+            },
           ],
         },
       ],
