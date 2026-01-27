@@ -1,0 +1,86 @@
+---
+title: Fox Web Framework
+description: A powerful extension of Gin with automatic parameter binding and enhanced features
+template: splash
+head: []
+hero:
+  title: Fox Web Framework
+  tagline: Fast, flexible, and powerful web framework built on Gin
+  image:
+    alt: Fox Web Framework Logo
+    html: '<img src="/fox-logo.svg" alt="Fox Logo" style="max-width: 400px; margin: 0 auto;" />'
+  actions:
+    - text: Get Started
+      link: /guides/quickstart/
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/fox-gonic/fox
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+  <Card title="🚀 Automatic Parameter Binding" icon="rocket">
+    Bind parameters from URI, query strings, and JSON bodies automatically with struct tags
+  </Card>
+  <Card title="🌐 Multi-Domain Routing" icon="globe">
+    Route traffic based on domain names with exact and regex pattern matching
+  </Card>
+  <Card title="📝 Structured Logging" icon="document">
+    Built-in logger with TraceID, structured fields, and automatic file rotation
+  </Card>
+  <Card title="🛡️ Crash Protection" icon="shield">
+    Graceful panic recovery with detailed error logging and stack traces
+  </Card>
+  <Card title="⚡ High Performance" icon="lightning">
+    Minimal overhead above Gin's routing engine, benchmarked for speed
+  </Card>
+  <Card title="🔌 Middleware Support" icon="puzzle">
+    Full compatibility with Gin middleware ecosystem
+  </Card>
+  <Card title="✅ Custom Validation" icon="approve-check">
+    Implement IsValider interface for complex business validation logic
+  </Card>
+  <Card title="🔄 100% Gin Compatible" icon="loop">
+    Use any existing Gin middleware and handlers seamlessly
+  </Card>
+</CardGrid>
+
+## Quick Example
+
+```go
+package main
+
+import (
+    "github.com/fox-gonic/fox"
+)
+
+type UserRequest struct {
+    Name  string `json:"name" binding:"required"`
+    Email string `json:"email" binding:"required,email"`
+}
+
+func main() {
+    r := fox.Default()
+
+    // Automatic parameter binding and response
+    r.POST("/user", func(req *UserRequest) (any, error) {
+        // Parameters are automatically bound and validated
+        return map[string]string{
+            "message": "User created successfully",
+            "name":    req.Name,
+        }, nil
+    })
+
+    r.Run(":8080")
+}
+```
+
+## Why Fox?
+
+Fox extends Gin with modern conveniences while maintaining 100% backward compatibility. Write cleaner, more maintainable code with automatic parameter binding, flexible response handling, and built-in validation.
+
+Perfect for building REST APIs with numerous endpoints where you want to focus on business logic rather than boilerplate code.
