@@ -53,10 +53,11 @@ type UpdateUserRequest struct {
 }
 
 // QueryUsersRequest 表示查询参数
+// 可以使用 'query' 或 'form' 标签来绑定 URL 查询参数
 type QueryUsersRequest struct {
-	Page     int    `form:"page" binding:"omitempty,gte=1"`
-	PageSize int    `form:"page_size" binding:"omitempty,gte=1,lte=100"`
-	Keyword  string `form:"keyword"`
+	Page     int    `query:"page" binding:"omitempty,gte=1"`
+	PageSize int    `query:"page_size" binding:"omitempty,gte=1,lte=100"`
+	Keyword  string `query:"keyword"`
 }
 
 func main() {

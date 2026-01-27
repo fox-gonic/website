@@ -12,11 +12,11 @@ Fox automatically binds request parameters from various sources to your handler 
 
 Fox can bind parameters from:
 
-- **URI path parameters** - `/user/:id`
-- **Query strings** - `?name=value`
-- **JSON request body** - `Content-Type: application/json`
-- **Form data** - `Content-Type: application/x-www-form-urlencoded`
-- **Headers** - Custom HTTP headers
+- **URI path parameters** - `/user/:id` (using `uri` tag)
+- **Query strings** - `?name=value` (using `query` or `form` tag)
+- **JSON request body** - `Content-Type: application/json` (using `json` tag)
+- **Form data** - `Content-Type: application/x-www-form-urlencoded` (using `form` tag)
+- **Headers** - Custom HTTP headers (using `header` tag)
 
 ## Basic Usage
 
@@ -34,9 +34,18 @@ r.GET("/user/:id", func(req *UserRequest) (*User, error) {
 
 ### Query Parameters
 
+Fox supports both `form` and `query` tags for binding URL query parameters:
+
 ```go
 type SearchRequest struct {
-    Query string `form:"q" binding:"required"`
+    Query string `query:"q" binding:"required"`  // Using query tag
+    Page  int    `query:"page"`
+    Size  int    `query:"size"`
+}
+
+// Or use form tag (both work the same way)
+type SearchRequest struct {
+    Query string `form:"q" binding:"required"`   // Using form tag
     Page  int    `form:"page"`
     Size  int    `form:"size"`
 }
