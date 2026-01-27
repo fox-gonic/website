@@ -3,7 +3,7 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://fox-gonic.github.io',
+  site: 'https://fox-gonic.com',
   integrations: [
     starlight({
       title: 'Fox Web Framework',
