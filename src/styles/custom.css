@@ -218,3 +218,16 @@ body > header.header,
     grid-template-columns: 1fr;
   }
 }
+
+/* Sidebar current page link - Light theme fix */
+:root:not([data-theme='dark']) .sidebar a[aria-current='page'],
+:root:not([data-theme='dark']) .sidebar .current,
+:root:not([data-theme='dark']) .sidebar a.current {
+  color: rgb(237, 107, 53) !important;
+  background-color: rgba(237, 107, 53, 0.1) !important;
+}
+
+:root:not([data-theme='dark']) .sidebar a[aria-current='page']:hover,
+:root:not([data-theme='dark']) .sidebar .current:hover {
+  background-color: rgba(237, 107, 53, 0.15) !important;
+}
