@@ -4,8 +4,6 @@ description: Route traffic based on domain names
 head: []
 ---
 
-# Multi-Domain Routing
-
 Fox routes by domain with `DomainEngine`. A `DomainEngine` owns a fallback `*fox.Engine` and a list of domain-specific sub-engines. Requests are matched against registered domains in registration order; if no domain matches, the fallback engine handles the request.
 
 ## Basic Usage

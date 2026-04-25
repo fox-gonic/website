@@ -4,8 +4,6 @@ description: Custom validation rules and error handling
 head: []
 ---
 
-# Validation
-
 Fox provides flexible validation options through struct tags and custom validators.
 
 ## Built-in Validation

@@ -4,8 +4,6 @@ description: Implementing custom validation logic using IsValider interface
 head: []
 ---
 
-# Custom Validator
-
 This example demonstrates how to implement custom validation logic beyond standard struct tag validation using the `IsValider` interface.
 
 ## Features

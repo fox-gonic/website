@@ -4,8 +4,6 @@ description: 内置 TraceID 和结构化字段日志
 head: []
 ---
 
-# 结构化日志
-
 Fox 提供请求日志中间件，以及基于 zerolog 的 `logger` 包。日志中间件会创建或复用 `x-request-id`，把请求日志器保存到 `*fox.Context`，并在处理器结束后输出一条请求日志。
 
 ## 基本用法

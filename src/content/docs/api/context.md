@@ -4,8 +4,6 @@ description: Fox Context API Reference
 head: []
 ---
 
-# Context API
-
 Fox handlers use `*fox.Context`, a thin wrapper around Gin's `*gin.Context`. It embeds Gin's context, so Gin methods such as `Query`, `Param`, `JSON`, `Abort`, and `GetHeader` are available directly, while Fox adds request body caching, TraceID helpers, logger access, and `context.Context` compatibility.
 
 ## Getting Context

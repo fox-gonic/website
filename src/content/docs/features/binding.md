@@ -4,8 +4,6 @@ description: Automatically bind request parameters to structs
 head: []
 ---
 
-# Parameter Binding
-
 Fox automatically binds request parameters from various sources to your handler function parameters.
 
 ## Supported Sources

@@ -4,8 +4,6 @@ description: Basic examples of using Fox
 head: []
 ---
 
-# Basic Usage Examples
-
 ## Hello World
 
 ```go

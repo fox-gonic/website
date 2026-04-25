@@ -4,8 +4,6 @@ description: Configuring logging for development and production
 head: []
 ---
 
-# Logger Configuration
-
 This example demonstrates various logging configurations in Fox, from development-friendly console logging to production-ready file logging with rotation.
 
 ## Features

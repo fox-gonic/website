@@ -4,8 +4,6 @@ description: Using middleware for request processing
 head: []
 ---
 
-# Middleware
-
 This example demonstrates how to use middleware in Fox for cross-cutting concerns like authentication, logging, rate limiting, and request tracking.
 
 ## Features

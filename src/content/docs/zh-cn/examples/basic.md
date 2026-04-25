@@ -4,8 +4,6 @@ description: 使用 Fox 的基本示例
 head: []
 ---
 
-# 基本用法示例
-
 ## Hello World
 
 ```go

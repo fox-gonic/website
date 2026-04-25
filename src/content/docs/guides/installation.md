@@ -4,8 +4,6 @@ description: How to install Fox and set up your development environment
 head: []
 ---
 
-# Installation
-
 ## Requirements
 
 - **Go 1.21+** - Fox requires Go version 1.21 or higher

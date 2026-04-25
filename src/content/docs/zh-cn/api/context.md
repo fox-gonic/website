@@ -4,8 +4,6 @@ description: Fox Context API 参考
 head: []
 ---
 
-# Context API
-
 Fox 处理器使用 `*fox.Context`。它包装并嵌入了 Gin 的 `*gin.Context`，因此可以直接使用 `Query`、`Param`、`JSON`、`Abort`、`GetHeader` 等 Gin 方法；同时 Fox 增加了请求体缓存、TraceID、日志访问和 `context.Context` 兼容能力。
 
 ## 获取 Context

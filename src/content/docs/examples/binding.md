@@ -4,8 +4,6 @@ description: Automatic parameter binding from different sources
 head: []
 ---
 
-# Parameter Binding
-
 This example demonstrates automatic parameter binding from different sources including JSON body, URI parameters, and query parameters.
 
 ## Features

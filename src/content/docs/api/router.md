@@ -4,8 +4,6 @@ description: Fox Router API Reference
 head: []
 ---
 
-# Router API
-
 The Router is the core component of Fox, handling request routing and middleware.
 
 ## Creating a Router

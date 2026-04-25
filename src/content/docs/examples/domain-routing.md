@@ -4,8 +4,6 @@ description: Multi-domain routing with exact and pattern matching
 head: []
 ---
 
-# Domain Routing
-
 This example demonstrates how to route requests based on the domain name, enabling multi-tenant applications, API gateways, and environment-specific routing.
 
 ## Features

@@ -4,8 +4,6 @@ description: 了解 Fox Web 框架及其核心概念
 head: []
 ---
 
-# 介绍
-
 Fox 是一个构建在 [Gin](https://gin-gonic.com/) 之上的强大 Web 框架，提供自动参数绑定、灵活的响应渲染和增强功能，同时保持与 Gin 的完全兼容。
 
 ## 什么是 Fox？

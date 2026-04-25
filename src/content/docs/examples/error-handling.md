@@ -4,8 +4,6 @@ description: Handling errors and returning consistent error responses
 head: []
 ---
 
-# Error Handling
-
 This example demonstrates various error handling patterns in Fox, including simple errors, HTTP errors with status codes, and detailed error responses.
 
 ## Features

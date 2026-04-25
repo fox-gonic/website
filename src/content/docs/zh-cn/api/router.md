@@ -4,8 +4,6 @@ description: Fox 路由器 API 参考
 head: []
 ---
 
-# 路由器 API
-
 路由器是 Fox 的核心组件，处理请求路由和中间件。
 
 ## 创建路由器

@@ -4,8 +4,6 @@ description: Learn about Fox web framework and its core concepts
 head: []
 ---
 
-# Introduction
-
 Fox is a powerful web framework built on top of [Gin](https://gin-gonic.com/), providing automatic parameter binding, flexible response rendering, and enhanced features while maintaining full Gin compatibility.
 
 ## What is Fox?

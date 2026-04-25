@@ -4,8 +4,6 @@ description: Get started with Fox in minutes
 head: []
 ---
 
-# Quick Start
-
 Get up and running with Fox in just a few minutes.
 
 ## Prerequisites

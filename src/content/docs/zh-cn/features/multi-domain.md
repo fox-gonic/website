@@ -4,8 +4,6 @@ description: 根据域名路由流量
 head: []
 ---
 
-# 多域名路由
-
 Fox 通过 `DomainEngine` 实现域名路由。`DomainEngine` 包含一个回退用的 `*fox.Engine`，以及一组域名专用的子 engine。请求会按注册顺序匹配域名；如果没有匹配项，就交给回退 engine 处理。
 
 ## 基本用法

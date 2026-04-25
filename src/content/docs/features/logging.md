@@ -4,8 +4,6 @@ description: Built-in structured logging with TraceID and contextual fields
 head: []
 ---
 
-# Structured Logging
-
 Fox includes request logging middleware and a small logger package built on top of zerolog. The middleware creates or reuses an `x-request-id`, stores a request logger on `*fox.Context`, and writes one request log after the handler finishes.
 
 ## Basic Usage
