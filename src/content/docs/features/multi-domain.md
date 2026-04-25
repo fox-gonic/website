@@ -6,172 +6,106 @@ head: []
 
 # Multi-Domain Routing
 
-Fox supports routing based on domain names, allowing you to host multiple services or APIs on different domains using a single application instance.
+Fox routes by domain with `DomainEngine`. A `DomainEngine` owns a fallback `*fox.Engine` and a list of domain-specific sub-engines. Requests are matched against registered domains in registration order; if no domain matches, the fallback engine handles the request.
 
 ## Basic Usage
 
-### Exact Domain Matching
-
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
-// Route for api.example.com
-r.Domain("api.example.com").GET("/users", func() ([]User, error) {
-    return getUsers()
+de.Domain("api.example.com", func(api *fox.Engine) {
+    api.GET("/users", func() ([]User, error) {
+        return getUsers()
+    })
 })
 
-// Route for admin.example.com
-r.Domain("admin.example.com").GET("/dashboard", func() (Dashboard, error) {
-    return getDashboard()
+de.Domain("admin.example.com", func(admin *fox.Engine) {
+    admin.GET("/dashboard", func() (Dashboard, error) {
+        return getDashboard()
+    })
 })
 
-// Default route (any domain)
-r.GET("/health", func() string {
+de.GET("/health", func() string {
     return "OK"
 })
+
+de.Run(":8080")
 ```
 
-### Wildcard Domains
+## Regex Domains
 
-Use wildcards to match subdomains:
+Fox does not implement wildcard syntax such as `"*.example.com"`. Use `DomainRegexp` for subdomain patterns:
 
 ```go
-// Match any subdomain of example.com
-r.Domain("*.example.com").GET("/info", func(c *gin.Context) (any, error) {
-    host := c.Request.Host
-    return map[string]string{
-        "message": "Subdomain: " + host,
-    }, nil
+de.DomainRegexp(`^[^.]+\.example\.com$`, func(app *fox.Engine) {
+    app.GET("/info", func(ctx *fox.Context) map[string]string {
+        return map[string]string{
+            "host": ctx.Request.Host,
+        }
+    })
 })
 ```
 
-## Pattern Matching
-
-### Regex Patterns
-
-Use regex for complex domain matching:
-
-```go
-// Match domains like tenant1.app.com, tenant2.app.com
-r.DomainRegex(`^([a-z0-9]+)\.app\.com$`).GET("/", func(c *gin.Context) (any, error) {
-    matches := r.GetDomainMatches(c)
-    tenantID := matches[1] // Extract tenant ID from domain
-
-    return map[string]string{
-        "tenant": tenantID,
-    }, nil
-})
-```
-
-### Multiple Domains
-
-Route the same handler to multiple domains:
-
-```go
-domains := []string{"api.example.com", "api.example.net", "api.example.org"}
-
-for _, domain := range domains {
-    r.Domain(domain).GET("/status", statusHandler)
-}
-```
+The regular expression is matched against the host after Fox strips the port. Captured groups are not stored on the context, so parse `ctx.Request.Host` yourself if you need the tenant or subdomain value.
 
 ## Multi-Tenant Applications
 
-Build SaaS applications with tenant isolation:
-
 ```go
-type TenantMiddleware struct {
-    tenantRepo TenantRepository
-}
+de := fox.NewDomainEngine()
 
-func (m *TenantMiddleware) Handler() gin.HandlerFunc {
-    return func(c *gin.Context) {
+de.DomainRegexp(`^[a-z0-9-]+\.app\.example\.com$`, func(tenant *fox.Engine) {
+    tenant.Use(func(c *gin.Context) {
         host := c.Request.Host
-        tenant, err := m.tenantRepo.GetByDomain(host)
-        if err != nil {
-            c.JSON(404, gin.H{"error": "Tenant not found"})
-            c.Abort()
-            return
+        if i := strings.Index(host, ":"); i >= 0 {
+            host = host[:i]
         }
 
-        c.Set("tenant", tenant)
+        tenantID := strings.TrimSuffix(host, ".app.example.com")
+        c.Set("tenant_id", tenantID)
         c.Next()
-    }
-}
+    })
 
-func main() {
-    r := fox.Default()
-
-    tenantMW := &TenantMiddleware{tenantRepo: repo}
-
-    // Apply middleware to all tenant domains
-    tenants := r.Group("")
-    tenants.Use(tenantMW.Handler())
-    {
-        tenants.GET("/api/data", func(c *gin.Context) (any, error) {
-            tenant := c.MustGet("tenant").(*Tenant)
-            return getTenantData(tenant.ID)
-        })
-    }
-
-    r.Run(":8080")
-}
+    tenant.GET("/api/data", func(ctx *fox.Context) map[string]any {
+        tenantID, _ := ctx.Get("tenant_id")
+        return map[string]any{
+            "tenant_id": tenantID,
+        }
+    })
+})
 ```
 
 ## API Versioning by Domain
 
-Host different API versions on different subdomains:
-
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
-// v1.api.example.com
-v1 := r.Domain("v1.api.example.com")
-v1.GET("/users", getUsersV1)
-v1.POST("/users", createUserV1)
+de.Domain("v1.api.example.com", func(v1 *fox.Engine) {
+    v1.GET("/users", getUsersV1)
+    v1.POST("/users", createUserV1)
+})
 
-// v2.api.example.com
-v2 := r.Domain("v2.api.example.com")
-v2.GET("/users", getUsersV2)
-v2.POST("/users", createUserV2)
+de.Domain("v2.api.example.com", func(v2 *fox.Engine) {
+    v2.GET("/users", getUsersV2)
+    v2.POST("/users", createUserV2)
+})
 ```
 
 ## Environment-Based Routing
 
-Route based on environment:
-
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
 if os.Getenv("ENV") == "production" {
-    r.Domain("api.example.com").GET("/", prodHandler)
+    de.Domain("api.example.com", func(api *fox.Engine) {
+        api.GET("/", prodHandler)
+    })
 } else {
-    r.Domain("api-staging.example.com").GET("/", stagingHandler)
-    r.Domain("localhost").GET("/", devHandler)
-}
-```
-
-## Domain Groups
-
-Group routes by domain with shared middleware:
-
-```go
-r := fox.Default()
-
-// Admin domain with auth middleware
-admin := r.Domain("admin.example.com")
-admin.Use(authMiddleware())
-{
-    admin.GET("/dashboard", dashboardHandler)
-    admin.GET("/users", listUsersHandler)
-    admin.POST("/users", createUserHandler)
-}
-
-// Public API domain
-api := r.Domain("api.example.com")
-api.Use(rateLimitMiddleware())
-{
-    api.GET("/public/data", publicDataHandler)
+    de.Domain("api-staging.example.com", func(api *fox.Engine) {
+        api.GET("/", stagingHandler)
+    })
+    de.Domain("localhost", func(local *fox.Engine) {
+        local.GET("/", devHandler)
+    })
 }
 ```
 
@@ -179,61 +113,71 @@ api.Use(rateLimitMiddleware())
 
 ```go
 func TestDomainRouting(t *testing.T) {
-    r := fox.Default()
+    de := fox.NewDomainEngine()
 
-    r.Domain("api.example.com").GET("/test", func() string {
-        return "API"
+    de.Domain("api.example.com", func(api *fox.Engine) {
+        api.GET("/test", func() string {
+            return "API"
+        })
     })
 
-    r.Domain("admin.example.com").GET("/test", func() string {
-        return "Admin"
+    de.Domain("admin.example.com", func(admin *fox.Engine) {
+        admin.GET("/test", func() string {
+            return "Admin"
+        })
     })
 
-    // Test API domain
     w := httptest.NewRecorder()
     req, _ := http.NewRequest("GET", "/test", nil)
     req.Host = "api.example.com"
-    r.ServeHTTP(w, req)
+    de.ServeHTTP(w, req)
 
     assert.Equal(t, 200, w.Code)
     assert.Equal(t, "API", w.Body.String())
 
-    // Test Admin domain
     w = httptest.NewRecorder()
     req, _ = http.NewRequest("GET", "/test", nil)
     req.Host = "admin.example.com"
-    r.ServeHTTP(w, req)
+    de.ServeHTTP(w, req)
 
     assert.Equal(t, 200, w.Code)
     assert.Equal(t, "Admin", w.Body.String())
 }
 ```
 
-## Best Practices
+## Matching Rules
 
-1. **Use exact matching when possible** - More performant than regex
-2. **Validate domain input** - Prevent security issues with domain injection
-3. **Consider DNS configuration** - Ensure DNS records point to your server
-4. **Handle default case** - Provide fallback routes for unknown domains
-5. **Document domain structure** - Maintain clear documentation of domain routing
+1. Exact domains and regex domains are checked in the order they were registered.
+2. Host ports are stripped before matching.
+3. Exact matching is case-sensitive because Fox compares strings directly.
+4. `DomainRegexp` panics during registration if the pattern cannot compile.
+5. Fallback routes on the `DomainEngine` handle requests that do not match any registered domain.
 
 ## Configuration Example
 
 ```go
 type DomainConfig struct {
-    API   string `env:"API_DOMAIN" default:"api.example.com"`
-    Admin string `env:"ADMIN_DOMAIN" default:"admin.example.com"`
-    Web   string `env:"WEB_DOMAIN" default:"www.example.com"`
+    API   string
+    Admin string
+    Web   string
 }
 
-func setupRoutes(r *fox.Router, cfg DomainConfig) {
-    r.Domain(cfg.API).GET("/v1/users", apiHandler)
-    r.Domain(cfg.Admin).GET("/dashboard", adminHandler)
-    r.Domain(cfg.Web).GET("/", webHandler)
+func setupRoutes(de *fox.DomainEngine, cfg DomainConfig) {
+    de.Domain(cfg.API, func(api *fox.Engine) {
+        api.GET("/v1/users", apiHandler)
+    })
+
+    de.Domain(cfg.Admin, func(admin *fox.Engine) {
+        admin.GET("/dashboard", adminHandler)
+    })
+
+    de.Domain(cfg.Web, func(web *fox.Engine) {
+        web.GET("/", webHandler)
+    })
 }
 ```
 
 ## Next Steps
 
-- [Middleware](/features/middleware/) - Apply middleware to domain groups
-- [Structured Logging](/features/logging/) - Log domain information
+- [Domain Routing Example](/examples/domain-routing/) - Complete runnable example
+- [Middleware](/examples/middleware/) - Apply middleware to domain engines

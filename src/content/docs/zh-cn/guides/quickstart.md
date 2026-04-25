@@ -39,7 +39,7 @@ func main() {
     r := fox.Default()
 
     // 定义一个简单的 GET 端点，自动参数绑定
-    r.GET("/hello", func(req *HelloRequest) (any, error) {
+    r.GET("/hello", func(_ *fox.Context, req *HelloRequest) (any, error) {
         return map[string]string{
             "message": "你好，" + req.Name + "！",
         }, nil
@@ -51,7 +51,7 @@ func main() {
         Email string `json:"email" binding:"required,email"`
     }
 
-    r.POST("/users", func(req *CreateUserRequest) (any, error) {
+    r.POST("/users", func(_ *fox.Context, req *CreateUserRequest) (any, error) {
         // 在实际应用中，您会在这里保存到数据库
         return map[string]any{
             "id":    1,
@@ -117,8 +117,12 @@ curl -X POST http://localhost:8080/users \
 ### 错误处理
 
 ```go
-r.GET("/user/:id", func(id int) (*User, error) {
-    user, err := db.GetUser(id)
+type UserParams struct {
+    ID int `uri:"id" binding:"required"`
+}
+
+r.GET("/user/:id", func(_ *fox.Context, req *UserParams) (*User, error) {
+    user, err := db.GetUser(req.ID)
     if err != nil {
         return nil, err // Fox 自动处理错误响应
     }
@@ -131,8 +135,8 @@ r.GET("/user/:id", func(id int) (*User, error) {
 当您需要访问底层 Gin 上下文时：
 
 ```go
-r.GET("/example", func(c *gin.Context, req *Request) (any, error) {
-    // 直接访问 Gin context
+r.GET("/example", func(c *fox.Context, req *Request) (any, error) {
+    // 直接访问嵌入的 Gin context 方法
     userAgent := c.GetHeader("User-Agent")
 
     // 您的逻辑

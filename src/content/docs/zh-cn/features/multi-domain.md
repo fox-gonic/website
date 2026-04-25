@@ -1,177 +1,111 @@
 ---
 title: 多域名路由
-description: 基于域名的流量路由
+description: 根据域名路由流量
 head: []
 ---
 
 # 多域名路由
 
-Fox 支持基于域名的路由，允许您在不同域名上使用单个应用实例托管多个服务或 API。
+Fox 通过 `DomainEngine` 实现域名路由。`DomainEngine` 包含一个回退用的 `*fox.Engine`，以及一组域名专用的子 engine。请求会按注册顺序匹配域名；如果没有匹配项，就交给回退 engine 处理。
 
 ## 基本用法
 
-### 精确域名匹配
-
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
-// api.example.com 的路由
-r.Domain("api.example.com").GET("/users", func() ([]User, error) {
-    return getUsers()
+de.Domain("api.example.com", func(api *fox.Engine) {
+    api.GET("/users", func() ([]User, error) {
+        return getUsers()
+    })
 })
 
-// admin.example.com 的路由
-r.Domain("admin.example.com").GET("/dashboard", func() (Dashboard, error) {
-    return getDashboard()
+de.Domain("admin.example.com", func(admin *fox.Engine) {
+    admin.GET("/dashboard", func() (Dashboard, error) {
+        return getDashboard()
+    })
 })
 
-// 默认路由（任何域名）
-r.GET("/health", func() string {
+de.GET("/health", func() string {
     return "OK"
 })
+
+de.Run(":8080")
 ```
 
-### 通配符域名
+## 正则域名
 
-使用通配符匹配子域名：
+Fox 不支持 `"*.example.com"` 这种通配符语法。子域名模式请使用 `DomainRegexp`：
 
 ```go
-// 匹配 example.com 的任何子域名
-r.Domain("*.example.com").GET("/info", func(c *gin.Context) (any, error) {
-    host := c.Request.Host
-    return map[string]string{
-        "message": "子域名: " + host,
-    }, nil
+de.DomainRegexp(`^[^.]+\.example\.com$`, func(app *fox.Engine) {
+    app.GET("/info", func(ctx *fox.Context) map[string]string {
+        return map[string]string{
+            "host": ctx.Request.Host,
+        }
+    })
 })
 ```
 
-## 模式匹配
-
-### 正则表达式
-
-使用正则表达式进行复杂的域名匹配：
-
-```go
-// 匹配像 tenant1.app.com、tenant2.app.com 这样的域名
-r.DomainRegex(`^([a-z0-9]+)\.app\.com$`).GET("/", func(c *gin.Context) (any, error) {
-    matches := r.GetDomainMatches(c)
-    tenantID := matches[1] // 从域名中提取租户 ID
-
-    return map[string]string{
-        "tenant": tenantID,
-    }, nil
-})
-```
-
-### 多个域名
-
-将同一处理器路由到多个域名：
-
-```go
-domains := []string{"api.example.com", "api.example.net", "api.example.org"}
-
-for _, domain := range domains {
-    r.Domain(domain).GET("/status", statusHandler)
-}
-```
+正则表达式会匹配去掉端口后的 host。捕获组不会保存到 context 中；如果需要租户或子域名值，请自行解析 `ctx.Request.Host`。
 
 ## 多租户应用
 
-构建具有租户隔离的 SaaS 应用：
-
 ```go
-type TenantMiddleware struct {
-    tenantRepo TenantRepository
-}
+de := fox.NewDomainEngine()
 
-func (m *TenantMiddleware) Handler() gin.HandlerFunc {
-    return func(c *gin.Context) {
+de.DomainRegexp(`^[a-z0-9-]+\.app\.example\.com$`, func(tenant *fox.Engine) {
+    tenant.Use(func(c *gin.Context) {
         host := c.Request.Host
-        tenant, err := m.tenantRepo.GetByDomain(host)
-        if err != nil {
-            c.JSON(404, gin.H{"error": "租户未找到"})
-            c.Abort()
-            return
+        if i := strings.Index(host, ":"); i >= 0 {
+            host = host[:i]
         }
 
-        c.Set("tenant", tenant)
+        tenantID := strings.TrimSuffix(host, ".app.example.com")
+        c.Set("tenant_id", tenantID)
         c.Next()
-    }
-}
+    })
 
-func main() {
-    r := fox.Default()
-
-    tenantMW := &TenantMiddleware{tenantRepo: repo}
-
-    // 对所有租户域应用中间件
-    tenants := r.Group("")
-    tenants.Use(tenantMW.Handler())
-    {
-        tenants.GET("/api/data", func(c *gin.Context) (any, error) {
-            tenant := c.MustGet("tenant").(*Tenant)
-            return getTenantData(tenant.ID)
-        })
-    }
-
-    r.Run(":8080")
-}
+    tenant.GET("/api/data", func(ctx *fox.Context) map[string]any {
+        tenantID, _ := ctx.Get("tenant_id")
+        return map[string]any{
+            "tenant_id": tenantID,
+        }
+    })
+})
 ```
 
-## 基于域名的 API 版本控制
-
-在不同子域名上托管不同的 API 版本：
+## 按域名做 API 版本
 
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
-// v1.api.example.com
-v1 := r.Domain("v1.api.example.com")
-v1.GET("/users", getUsersV1)
-v1.POST("/users", createUserV1)
+de.Domain("v1.api.example.com", func(v1 *fox.Engine) {
+    v1.GET("/users", getUsersV1)
+    v1.POST("/users", createUserV1)
+})
 
-// v2.api.example.com
-v2 := r.Domain("v2.api.example.com")
-v2.GET("/users", getUsersV2)
-v2.POST("/users", createUserV2)
+de.Domain("v2.api.example.com", func(v2 *fox.Engine) {
+    v2.GET("/users", getUsersV2)
+    v2.POST("/users", createUserV2)
+})
 ```
 
-## 基于环境的路由
-
-基于环境进行路由：
+## 按环境路由
 
 ```go
-r := fox.Default()
+de := fox.NewDomainEngine()
 
 if os.Getenv("ENV") == "production" {
-    r.Domain("api.example.com").GET("/", prodHandler)
+    de.Domain("api.example.com", func(api *fox.Engine) {
+        api.GET("/", prodHandler)
+    })
 } else {
-    r.Domain("api-staging.example.com").GET("/", stagingHandler)
-    r.Domain("localhost").GET("/", devHandler)
-}
-```
-
-## 域名分组
-
-按域名分组路由，共享中间件：
-
-```go
-r := fox.Default()
-
-// 带认证中间件的管理域名
-admin := r.Domain("admin.example.com")
-admin.Use(authMiddleware())
-{
-    admin.GET("/dashboard", dashboardHandler)
-    admin.GET("/users", listUsersHandler)
-    admin.POST("/users", createUserHandler)
-}
-
-// 公共 API 域名
-api := r.Domain("api.example.com")
-api.Use(rateLimitMiddleware())
-{
-    api.GET("/public/data", publicDataHandler)
+    de.Domain("api-staging.example.com", func(api *fox.Engine) {
+        api.GET("/", stagingHandler)
+    })
+    de.Domain("localhost", func(local *fox.Engine) {
+        local.GET("/", devHandler)
+    })
 }
 ```
 
@@ -179,61 +113,71 @@ api.Use(rateLimitMiddleware())
 
 ```go
 func TestDomainRouting(t *testing.T) {
-    r := fox.Default()
+    de := fox.NewDomainEngine()
 
-    r.Domain("api.example.com").GET("/test", func() string {
-        return "API"
+    de.Domain("api.example.com", func(api *fox.Engine) {
+        api.GET("/test", func() string {
+            return "API"
+        })
     })
 
-    r.Domain("admin.example.com").GET("/test", func() string {
-        return "Admin"
+    de.Domain("admin.example.com", func(admin *fox.Engine) {
+        admin.GET("/test", func() string {
+            return "Admin"
+        })
     })
 
-    // 测试 API 域名
     w := httptest.NewRecorder()
     req, _ := http.NewRequest("GET", "/test", nil)
     req.Host = "api.example.com"
-    r.ServeHTTP(w, req)
+    de.ServeHTTP(w, req)
 
     assert.Equal(t, 200, w.Code)
     assert.Equal(t, "API", w.Body.String())
 
-    // 测试 Admin 域名
     w = httptest.NewRecorder()
     req, _ = http.NewRequest("GET", "/test", nil)
     req.Host = "admin.example.com"
-    r.ServeHTTP(w, req)
+    de.ServeHTTP(w, req)
 
     assert.Equal(t, 200, w.Code)
     assert.Equal(t, "Admin", w.Body.String())
 }
 ```
 
-## 最佳实践
+## 匹配规则
 
-1. **尽可能使用精确匹配** - 比正则表达式性能更好
-2. **验证域名输入** - 防止域名注入的安全问题
-3. **考虑 DNS 配置** - 确保 DNS 记录指向您的服务器
-4. **处理默认情况** - 为未知域名提供回退路由
-5. **记录域名结构** - 维护清晰的域名路由文档
+1. 精确域名和正则域名都按注册顺序检查。
+2. 匹配前会去掉 Host 中的端口号。
+3. 精确域名匹配区分大小写，因为 Fox 直接比较字符串。
+4. `DomainRegexp` 如果无法编译正则表达式，会在注册时 panic。
+5. 没有匹配任何域名时，请求由 `DomainEngine` 上的回退路由处理。
 
 ## 配置示例
 
 ```go
 type DomainConfig struct {
-    API   string `env:"API_DOMAIN" default:"api.example.com"`
-    Admin string `env:"ADMIN_DOMAIN" default:"admin.example.com"`
-    Web   string `env:"WEB_DOMAIN" default:"www.example.com"`
+    API   string
+    Admin string
+    Web   string
 }
 
-func setupRoutes(r *fox.Router, cfg DomainConfig) {
-    r.Domain(cfg.API).GET("/v1/users", apiHandler)
-    r.Domain(cfg.Admin).GET("/dashboard", adminHandler)
-    r.Domain(cfg.Web).GET("/", webHandler)
+func setupRoutes(de *fox.DomainEngine, cfg DomainConfig) {
+    de.Domain(cfg.API, func(api *fox.Engine) {
+        api.GET("/v1/users", apiHandler)
+    })
+
+    de.Domain(cfg.Admin, func(admin *fox.Engine) {
+        admin.GET("/dashboard", adminHandler)
+    })
+
+    de.Domain(cfg.Web, func(web *fox.Engine) {
+        web.GET("/", webHandler)
+    })
 }
 ```
 
 ## 下一步
 
-- [中间件](/zh-cn/features/middleware/) - 对域名组应用中间件
-- [结构化日志](/zh-cn/features/logging/) - 记录域名信息
+- [域名路由示例](/zh-cn/examples/domain-routing/) - 完整可运行示例
+- [中间件](/zh-cn/examples/middleware/) - 在域名 engine 中使用中间件

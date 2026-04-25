@@ -6,17 +6,28 @@ head: []
 
 # Context API
 
-The Context provides access to request and response data.
+Fox handlers use `*fox.Context`, a thin wrapper around Gin's `*gin.Context`. It embeds Gin's context, so Gin methods such as `Query`, `Param`, `JSON`, `Abort`, and `GetHeader` are available directly, while Fox adds request body caching, TraceID helpers, logger access, and `context.Context` compatibility.
 
 ## Getting Context
 
-Fox handlers can optionally accept a `*gin.Context` parameter:
+Fox handlers can optionally accept a `*fox.Context` parameter:
 
 ```go
-r.GET("/path", func(c *gin.Context) (any, error) {
+r.GET("/path", func(c *fox.Context) (any, error) {
     // Access context
     return response, nil
 })
+```
+
+Gin middleware still uses `*gin.Context`:
+
+```go
+func MyMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Set("user_id", 123)
+        c.Next()
+    }
+}
 ```
 
 ## Request Data
@@ -48,6 +59,12 @@ userAgent := c.Request.UserAgent()
 ```go
 var data map[string]any
 c.ShouldBindJSON(&data)
+```
+
+Fox also provides `RequestBody()` for reading and caching the raw request body. It restores the body so later binding can read it again:
+
+```go
+body, err := c.RequestBody()
 ```
 
 ### Client IP
@@ -178,14 +195,27 @@ if !isAuthenticated(c) {
 ### Get Logger
 
 ```go
-logger := fox.GetLogger(c)
-logger.Info("Processing request")
+c.Logger.Info("Processing request")
 ```
 
 ### Get TraceID
 
 ```go
-traceID := fox.GetTraceID(c)
+traceID := c.TraceID()
+```
+
+### Context Interface
+
+`*fox.Context` implements the standard context methods by delegating to `c.Request.Context()`:
+
+```go
+select {
+case <-c.Done():
+    return nil, c.Err()
+default:
+}
+
+value := c.Value(myKey)
 ```
 
 ## Next Steps

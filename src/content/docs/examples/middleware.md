@@ -27,17 +27,15 @@ import (
 	"time"
 
 	"github.com/fox-gonic/fox"
-	"github.com/fox-gonic/fox/logger"
-	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware simulates authentication
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func AuthMiddleware() func(*fox.Context) {
+	return func(c *fox.Context) {
 		token := c.GetHeader("Authorization")
 
 		if token == "" {
-			c.AbortWithStatusJSON(401, gin.H{
+			c.AbortWithStatusJSON(401, map[string]string{
 				"error": "unauthorized",
 				"code":  "MISSING_TOKEN",
 			})
@@ -45,7 +43,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if token != "Bearer valid-token" {
-			c.AbortWithStatusJSON(401, gin.H{
+			c.AbortWithStatusJSON(401, map[string]string{
 				"error": "unauthorized",
 				"code":  "INVALID_TOKEN",
 			})
@@ -61,16 +59,16 @@ func AuthMiddleware() gin.HandlerFunc {
 }
 
 // RateLimitMiddleware simulates rate limiting
-func RateLimitMiddleware() gin.HandlerFunc {
+func RateLimitMiddleware() func(*fox.Context) {
 	// In production, use a real rate limiter
 	lastRequest := make(map[string]time.Time)
 
-	return func(c *gin.Context) {
+	return func(c *fox.Context) {
 		clientIP := c.ClientIP()
 
 		if last, exists := lastRequest[clientIP]; exists {
 			if time.Since(last) < time.Second {
-				c.AbortWithStatusJSON(429, gin.H{
+				c.AbortWithStatusJSON(429, map[string]string{
 					"error": "rate limit exceeded",
 					"code":  "RATE_LIMIT",
 				})
@@ -84,8 +82,8 @@ func RateLimitMiddleware() gin.HandlerFunc {
 }
 
 // RequestIDMiddleware adds request ID to context
-func RequestIDMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func RequestIDMiddleware() func(*fox.Context) {
+	return func(c *fox.Context) {
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -105,7 +103,7 @@ func main() {
 	router.Use(fox.Logger())            // Request logging
 	router.Use(fox.NewXResponseTimer()) // Response time tracking
 	router.Use(RequestIDMiddleware())   // Request ID
-	router.Use(gin.Recovery())          // Panic recovery
+	router.Use(fox.Recovery())          // Panic recovery
 
 	// Public routes (no authentication)
 	router.GET("/", func() string {
@@ -152,7 +150,7 @@ func main() {
 	}
 
 	// Custom middleware for specific route
-	router.GET("/special", func(c *gin.Context) {
+	router.GET("/special", func(c *fox.Context) {
 		c.Set("special", true)
 		c.Next()
 	}, func(ctx *fox.Context) map[string]any {
@@ -168,8 +166,7 @@ func main() {
 		SkipPaths: []string{"/health"},
 	}), func(ctx *fox.Context) string {
 		// Get logger from context
-		log := logger.NewWithContext(ctx.Context)
-		log.Info("Processing request with custom logger config")
+		ctx.Logger.Info("Processing request with custom logger config")
 		return "Logged"
 	})
 
@@ -240,8 +237,8 @@ Logger → ResponseTimer → RequestID → Recovery → AuthMiddleware → Handl
 ## Creating Custom Middleware
 
 ```go
-func MyMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
+func MyMiddleware() func(*fox.Context) {
+    return func(c *fox.Context) {
         // Before request
         start := time.Now()
 
@@ -261,7 +258,7 @@ Use `c.AbortWithStatusJSON()` to stop the middleware chain:
 
 ```go
 if !authorized {
-    c.AbortWithStatusJSON(401, gin.H{
+    c.AbortWithStatusJSON(401, map[string]string{
         "error": "unauthorized",
     })
     return
@@ -274,7 +271,7 @@ Fox provides several built-in middleware:
 
 - `fox.Logger()` - Request logging
 - `fox.NewXResponseTimer()` - Response time tracking
-- `gin.Recovery()` - Panic recovery
+- `fox.Recovery()` - Panic recovery
 - `fox.Logger(config)` - Logger with configuration
 
 ## Next Steps

@@ -67,7 +67,7 @@ func main() {
     r := fox.Default()
 
     // 自动参数绑定和响应
-    r.POST("/user", func(req *UserRequest) (any, error) {
+    r.POST("/user", func(_ *fox.Context, req *UserRequest) (any, error) {
         // 参数自动绑定和验证
         return map[string]string{
             "message": "用户创建成功",

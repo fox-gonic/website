@@ -67,7 +67,7 @@ func main() {
     r := fox.Default()
 
     // Automatic parameter binding and response
-    r.POST("/user", func(req *UserRequest) (any, error) {
+    r.POST("/user", func(_ *fox.Context, req *UserRequest) (any, error) {
         // Parameters are automatically bound and validated
         return map[string]string{
             "message": "User created successfully",

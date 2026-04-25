@@ -12,7 +12,7 @@ This example demonstrates how to route requests based on the domain name, enabli
 
 - Exact domain matching
 - Regex domain pattern matching
-- Wildcard subdomain routing
+- Regex subdomain routing
 - Default/fallback routing
 - Multi-tenant applications support
 
@@ -254,7 +254,7 @@ de.Domain("inventory.service.local", inventoryService)
 
 ## Tips
 
-- Domain matching is **case-insensitive**
+- Exact domain matching is **case-sensitive**
 - Port numbers are automatically stripped from the Host header
 - Use `^` and `$` in regex patterns to match the entire domain
 - Regex patterns are compiled once at startup for performance

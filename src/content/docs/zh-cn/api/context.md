@@ -6,17 +6,28 @@ head: []
 
 # Context API
 
-Context 提供对请求和响应数据的访问。
+Fox 处理器使用 `*fox.Context`。它包装并嵌入了 Gin 的 `*gin.Context`，因此可以直接使用 `Query`、`Param`、`JSON`、`Abort`、`GetHeader` 等 Gin 方法；同时 Fox 增加了请求体缓存、TraceID、日志访问和 `context.Context` 兼容能力。
 
 ## 获取 Context
 
-Fox 处理器可以选择性地接受 `*gin.Context` 参数：
+Fox 处理器可以选择性地接受 `*fox.Context` 参数：
 
 ```go
-r.GET("/path", func(c *gin.Context) (any, error) {
+r.GET("/path", func(c *fox.Context) (any, error) {
     // 访问 context
     return response, nil
 })
+```
+
+Gin 中间件仍然使用 `*gin.Context`：
+
+```go
+func MyMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Set("user_id", 123)
+        c.Next()
+    }
+}
 ```
 
 ## 请求数据
@@ -48,6 +59,12 @@ userAgent := c.Request.UserAgent()
 ```go
 var data map[string]any
 c.ShouldBindJSON(&data)
+```
+
+Fox 还提供 `RequestBody()`，用于读取并缓存原始请求体。它会恢复 body，后续绑定仍然可以再次读取：
+
+```go
+body, err := c.RequestBody()
 ```
 
 ### 客户端 IP
@@ -178,14 +195,27 @@ if !isAuthenticated(c) {
 ### 获取 Logger
 
 ```go
-logger := fox.GetLogger(c)
-logger.Info("处理请求")
+c.Logger.Info("处理请求")
 ```
 
 ### 获取 TraceID
 
 ```go
-traceID := fox.GetTraceID(c)
+traceID := c.TraceID()
+```
+
+### Context 接口
+
+`*fox.Context` 通过 `c.Request.Context()` 实现标准 context 方法：
+
+```go
+select {
+case <-c.Done():
+    return nil, c.Err()
+default:
+}
+
+value := c.Value(myKey)
 ```
 
 ## 下一步

@@ -39,7 +39,7 @@ func main() {
     r := fox.Default()
 
     // Define a simple GET endpoint with automatic parameter binding
-    r.GET("/hello", func(req *HelloRequest) (any, error) {
+    r.GET("/hello", func(_ *fox.Context, req *HelloRequest) (any, error) {
         return map[string]string{
             "message": "Hello, " + req.Name + "!",
         }, nil
@@ -51,7 +51,7 @@ func main() {
         Email string `json:"email" binding:"required,email"`
     }
 
-    r.POST("/users", func(req *CreateUserRequest) (any, error) {
+    r.POST("/users", func(_ *fox.Context, req *CreateUserRequest) (any, error) {
         // In a real application, you would save to a database here
         return map[string]any{
             "id":    1,
@@ -117,8 +117,12 @@ Now that you have a basic Fox application running, explore more features:
 ### Error Handling
 
 ```go
-r.GET("/user/:id", func(id int) (*User, error) {
-    user, err := db.GetUser(id)
+type UserParams struct {
+    ID int `uri:"id" binding:"required"`
+}
+
+r.GET("/user/:id", func(_ *fox.Context, req *UserParams) (*User, error) {
+    user, err := db.GetUser(req.ID)
     if err != nil {
         return nil, err // Fox handles error responses automatically
     }
@@ -131,8 +135,8 @@ r.GET("/user/:id", func(id int) (*User, error) {
 When you need access to the underlying Gin context:
 
 ```go
-r.GET("/example", func(c *gin.Context, req *Request) (any, error) {
-    // Access Gin context directly
+r.GET("/example", func(c *fox.Context, req *Request) (any, error) {
+    // Access the embedded Gin context directly
     userAgent := c.GetHeader("User-Agent")
 
     // Your logic here

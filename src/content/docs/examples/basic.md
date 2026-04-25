@@ -31,6 +31,7 @@ package main
 
 import (
     "github.com/fox-gonic/fox"
+    "github.com/fox-gonic/fox/httperrors"
 )
 
 type User struct {
@@ -64,17 +65,21 @@ func main() {
     })
 
     // Get user by ID
-    r.GET("/users/:id", func(id int) (*User, error) {
+    type UserParams struct {
+        ID int `uri:"id" binding:"required"`
+    }
+
+    r.GET("/users/:id", func(_ *fox.Context, req *UserParams) (*User, error) {
         for _, u := range users {
-            if u.ID == id {
+            if u.ID == req.ID {
                 return &u, nil
             }
         }
-        return nil, fox.ErrNotFound
+        return nil, httperrors.ErrNotFound
     })
 
     // Create user
-    r.POST("/users", func(req *CreateUserRequest) (*User, error) {
+    r.POST("/users", func(_ *fox.Context, req *CreateUserRequest) (*User, error) {
         user := User{
             ID:    len(users) + 1,
             Name:  req.Name,
@@ -85,7 +90,7 @@ func main() {
     })
 
     // Update user
-    r.PUT("/users/:id", func(req *UpdateUserRequest) (*User, error) {
+    r.PUT("/users/:id", func(_ *fox.Context, req *UpdateUserRequest) (*User, error) {
         for i, u := range users {
             if u.ID == req.ID {
                 users[i].Name = req.Name
@@ -93,18 +98,18 @@ func main() {
                 return &users[i], nil
             }
         }
-        return nil, fox.ErrNotFound
+        return nil, httperrors.ErrNotFound
     })
 
     // Delete user
-    r.DELETE("/users/:id", func(id int) error {
+    r.DELETE("/users/:id", func(_ *fox.Context, req *UserParams) error {
         for i, u := range users {
-            if u.ID == id {
+            if u.ID == req.ID {
                 users = append(users[:i], users[i+1:]...)
                 return nil
             }
         }
-        return fox.ErrNotFound
+        return httperrors.ErrNotFound
     })
 
     r.Run(":8080")
@@ -119,20 +124,16 @@ package main
 import (
     "time"
     "github.com/fox-gonic/fox"
-    "github.com/gin-gonic/gin"
 )
 
-func TimingMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
+func TimingMiddleware() func(*fox.Context) {
+    return func(c *fox.Context) {
         start := time.Now()
 
         c.Next()
 
         latency := time.Since(start)
-        logger := fox.GetLogger(c)
-        logger.Info("Request completed",
-            "latency_ms", latency.Milliseconds(),
-        )
+        c.Logger.WithField("latency_ms", latency.Milliseconds()).Info("Request completed")
     }
 }
 

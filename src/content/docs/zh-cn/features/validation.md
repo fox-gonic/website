@@ -105,22 +105,24 @@ func (r *CreateOrderRequest) IsValid() error {
 
 ### 默认错误响应
 
-当验证失败时，Fox 返回 400 Bad Request：
+当绑定或验证失败时，Fox 默认返回 `400 Bad Request`：
 
 ```json
 {
-  "error": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+  "code": "BIND_ERROR",
+  "error": "(400): Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag",
+  "meta": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
 }
 ```
 
 ### 自定义错误处理器
 
-自定义错误响应：
+通过 `RenderErrorFunc` 自定义自动错误响应：
 
 ```go
 r := fox.New()
 
-r.SetValidationErrorHandler(func(c *gin.Context, err error) {
+r.RenderErrorFunc = func(c *fox.Context, err error) {
     if validationErr, ok := err.(validator.ValidationErrors); ok {
         errors := make(map[string]string)
 
@@ -148,7 +150,7 @@ r.SetValidationErrorHandler(func(c *gin.Context, err error) {
     }
 
     c.JSON(400, gin.H{"error": err.Error()})
-})
+}
 ```
 
 响应：

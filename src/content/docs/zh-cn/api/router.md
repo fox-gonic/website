@@ -20,7 +20,7 @@ r := fox.New()
 
 ### fox.Default()
 
-创建一个带有默认中间件（Logger 和 Recovery）的路由器：
+创建一个带有默认中间件的路由器：响应时间头、请求日志和 Recovery。
 
 ```go
 r := fox.Default()
@@ -88,19 +88,41 @@ v1 := api.Group("/v1")
 }
 ```
 
+## 处理器签名
+
+Fox 路由处理器支持这些签名：
+
+```go
+func()
+func(ctx *fox.Context) T
+func(ctx *fox.Context) (T, error)
+func(ctx *fox.Context, req Request) T
+func(ctx *fox.Context, req *Request) (T, error)
+```
+
+如果有入参，第一个参数必须是 `*fox.Context`。第二个参数可以是结构体、结构体指针、map 或 interface，Fox 会从请求中自动绑定。
+
 ## 域名路由
 
 基于域名的路由：
 
 ```go
+de := fox.NewDomainEngine()
+
 // 精确域名
-r.Domain("api.example.com").GET("/users", handler)
+de.Domain("api.example.com", func(api *fox.Engine) {
+    api.GET("/users", handler)
+})
 
-// 通配符
-r.Domain("*.example.com").GET("/info", handler)
+// 正则域名
+de.DomainRegexp(`^([a-z]+)\.example\.com$`, func(app *fox.Engine) {
+    app.GET("/", handler)
+})
 
-// 正则表达式
-r.DomainRegex(`^([a-z]+)\.example\.com$`).GET("/", handler)
+// 回退路由注册在 DomainEngine 自身
+de.GET("/health", func() string {
+    return "OK"
+})
 ```
 
 ## 中间件
@@ -119,16 +141,14 @@ api.Use(authMiddleware())
 ### 内置中间件
 
 ```go
-import "github.com/fox-gonic/fox/middleware"
-
 // 日志中间件
-r.Use(middleware.Logger())
+r.Use(fox.Logger())
 
-// 恢复中间件
-r.Use(middleware.Recovery())
+// 响应时间头中间件
+r.Use(fox.NewXResponseTimer())
 
-// CORS 中间件
-r.Use(middleware.CORS())
+// Recovery 中间件
+r.Use(fox.Recovery())
 ```
 
 ## 运行服务器
@@ -157,16 +177,15 @@ server := &http.Server{
 server.ListenAndServe()
 ```
 
-## 配置选项
+## Engine 配置
 
-### 使用选项创建路由器
+`fox.New()` 不接收 option 参数。请直接配置嵌入的 Gin engine 和 Fox 字段：
 
 ```go
-r := fox.New(
-    fox.WithLoggerConfig(loggerConfig),
-    fox.WithMaxMemory(32 << 20), // 32 MB
-    fox.WithTrustedProxies([]string{"127.0.0.1"}),
-)
+r := fox.New()
+r.MaxMultipartMemory = 32 << 20
+r.SetTrustedProxies([]string{"127.0.0.1"})
+r.DefaultRenderErrorStatusCode = http.StatusUnprocessableEntity
 ```
 
 ## 下一步

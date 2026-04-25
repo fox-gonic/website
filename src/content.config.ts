@@ -1,10 +1,10 @@
 import { defineCollection } from 'astro:content';
+import { docsLoader } from '@astrojs/starlight/loaders';
 import { docsSchema } from '@astrojs/starlight/schema';
 
 const docs = defineCollection({
+  loader: docsLoader(),
   schema: docsSchema(),
-  // @ts-ignore - MDX extension is supported by Starlight
-  extension: '.mdx',
 });
 
 export const collections = { docs };

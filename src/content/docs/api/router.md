@@ -20,7 +20,7 @@ r := fox.New()
 
 ### fox.Default()
 
-Create a router with default middleware (Logger and Recovery):
+Create a router with default middleware: response time header, request logger, and recovery.
 
 ```go
 r := fox.Default()
@@ -88,19 +88,41 @@ v1 := api.Group("/v1")
 }
 ```
 
+## Handler Signatures
+
+Fox route handlers can use these signatures:
+
+```go
+func()
+func(ctx *fox.Context) T
+func(ctx *fox.Context) (T, error)
+func(ctx *fox.Context, req Request) T
+func(ctx *fox.Context, req *Request) (T, error)
+```
+
+The first argument, when present, must be `*fox.Context`. The second argument may be a struct, pointer to struct, map, or interface and is automatically bound from the request.
+
 ## Domain Routing
 
 Route based on domain names:
 
 ```go
+de := fox.NewDomainEngine()
+
 // Exact domain
-r.Domain("api.example.com").GET("/users", handler)
+de.Domain("api.example.com", func(api *fox.Engine) {
+    api.GET("/users", handler)
+})
 
-// Wildcard
-r.Domain("*.example.com").GET("/info", handler)
+// Regex domain
+de.DomainRegexp(`^([a-z]+)\.example\.com$`, func(app *fox.Engine) {
+    app.GET("/", handler)
+})
 
-// Regex
-r.DomainRegex(`^([a-z]+)\.example\.com$`).GET("/", handler)
+// Fallback routes live on the DomainEngine itself.
+de.GET("/health", func() string {
+    return "OK"
+})
 ```
 
 ## Middleware
@@ -119,16 +141,14 @@ api.Use(authMiddleware())
 ### Built-in Middleware
 
 ```go
-import "github.com/fox-gonic/fox/middleware"
-
 // Logger middleware
-r.Use(middleware.Logger())
+r.Use(fox.Logger())
+
+// Response time header middleware
+r.Use(fox.NewXResponseTimer())
 
 // Recovery middleware
-r.Use(middleware.Recovery())
-
-// CORS middleware
-r.Use(middleware.CORS())
+r.Use(fox.Recovery())
 ```
 
 ## Running the Server
@@ -157,16 +177,15 @@ server := &http.Server{
 server.ListenAndServe()
 ```
 
-## Configuration Options
+## Engine Configuration
 
-### Create Router with Options
+`fox.New()` does not accept option arguments. Configure the embedded Gin engine and Fox fields directly:
 
 ```go
-r := fox.New(
-    fox.WithLoggerConfig(loggerConfig),
-    fox.WithMaxMemory(32 << 20), // 32 MB
-    fox.WithTrustedProxies([]string{"127.0.0.1"}),
-)
+r := fox.New()
+r.MaxMultipartMemory = 32 << 20
+r.SetTrustedProxies([]string{"127.0.0.1"})
+r.DefaultRenderErrorStatusCode = http.StatusUnprocessableEntity
 ```
 
 ## Next Steps

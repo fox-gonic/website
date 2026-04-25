@@ -105,22 +105,24 @@ func (r *CreateOrderRequest) IsValid() error {
 
 ### Default Error Response
 
-When validation fails, Fox returns a 400 Bad Request:
+When binding or validation fails, Fox returns a `400 Bad Request` by default:
 
 ```json
 {
-  "error": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+  "code": "BIND_ERROR",
+  "error": "(400): Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag",
+  "meta": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
 }
 ```
 
 ### Custom Error Handler
 
-Customize error responses:
+Customize automatic error responses with `RenderErrorFunc`:
 
 ```go
 r := fox.New()
 
-r.SetValidationErrorHandler(func(c *gin.Context, err error) {
+r.RenderErrorFunc = func(c *fox.Context, err error) {
     if validationErr, ok := err.(validator.ValidationErrors); ok {
         errors := make(map[string]string)
 
@@ -148,7 +150,7 @@ r.SetValidationErrorHandler(func(c *gin.Context, err error) {
     }
 
     c.JSON(400, gin.H{"error": err.Error()})
-})
+}
 ```
 
 Response:

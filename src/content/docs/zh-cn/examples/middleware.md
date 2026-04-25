@@ -27,17 +27,15 @@ import (
 	"time"
 
 	"github.com/fox-gonic/fox"
-	"github.com/fox-gonic/fox/logger"
-	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware 模拟身份验证
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func AuthMiddleware() func(*fox.Context) {
+	return func(c *fox.Context) {
 		token := c.GetHeader("Authorization")
 
 		if token == "" {
-			c.AbortWithStatusJSON(401, gin.H{
+			c.AbortWithStatusJSON(401, map[string]string{
 				"error": "unauthorized",
 				"code":  "MISSING_TOKEN",
 			})
@@ -45,7 +43,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if token != "Bearer valid-token" {
-			c.AbortWithStatusJSON(401, gin.H{
+			c.AbortWithStatusJSON(401, map[string]string{
 				"error": "unauthorized",
 				"code":  "INVALID_TOKEN",
 			})
@@ -61,16 +59,16 @@ func AuthMiddleware() gin.HandlerFunc {
 }
 
 // RateLimitMiddleware 模拟速率限制
-func RateLimitMiddleware() gin.HandlerFunc {
+func RateLimitMiddleware() func(*fox.Context) {
 	// 在生产环境中,使用真正的速率限制器
 	lastRequest := make(map[string]time.Time)
 
-	return func(c *gin.Context) {
+	return func(c *fox.Context) {
 		clientIP := c.ClientIP()
 
 		if last, exists := lastRequest[clientIP]; exists {
 			if time.Since(last) < time.Second {
-				c.AbortWithStatusJSON(429, gin.H{
+				c.AbortWithStatusJSON(429, map[string]string{
 					"error": "rate limit exceeded",
 					"code":  "RATE_LIMIT",
 				})
@@ -84,8 +82,8 @@ func RateLimitMiddleware() gin.HandlerFunc {
 }
 
 // RequestIDMiddleware 向上下文添加请求 ID
-func RequestIDMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func RequestIDMiddleware() func(*fox.Context) {
+	return func(c *fox.Context) {
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -105,7 +103,7 @@ func main() {
 	router.Use(fox.Logger())            // 请求日志
 	router.Use(fox.NewXResponseTimer()) // 响应时间跟踪
 	router.Use(RequestIDMiddleware())   // 请求 ID
-	router.Use(gin.Recovery())          // Panic 恢复
+	router.Use(fox.Recovery())          // Panic 恢复
 
 	// 公共路由(无需身份验证)
 	router.GET("/", func() string {
@@ -152,7 +150,7 @@ func main() {
 	}
 
 	// 特定路由的自定义中间件
-	router.GET("/special", func(c *gin.Context) {
+	router.GET("/special", func(c *fox.Context) {
 		c.Set("special", true)
 		c.Next()
 	}, func(ctx *fox.Context) map[string]any {
@@ -168,8 +166,7 @@ func main() {
 		SkipPaths: []string{"/health"},
 	}), func(ctx *fox.Context) string {
 		// 从上下文获取日志记录器
-		log := logger.NewWithContext(ctx.Context)
-		log.Info("Processing request with custom logger config")
+		ctx.Logger.Info("Processing request with custom logger config")
 		return "Logged"
 	})
 
@@ -240,8 +237,8 @@ Logger → ResponseTimer → RequestID → Recovery → AuthMiddleware → Handl
 ## 创建自定义中间件
 
 ```go
-func MyMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
+func MyMiddleware() func(*fox.Context) {
+    return func(c *fox.Context) {
         // 请求前
         start := time.Now()
 
@@ -261,7 +258,7 @@ func MyMiddleware() gin.HandlerFunc {
 
 ```go
 if !authorized {
-    c.AbortWithStatusJSON(401, gin.H{
+    c.AbortWithStatusJSON(401, map[string]string{
         "error": "unauthorized",
     })
     return
@@ -274,7 +271,7 @@ Fox 提供了几个内置中间件:
 
 - `fox.Logger()` - 请求日志
 - `fox.NewXResponseTimer()` - 响应时间跟踪
-- `gin.Recovery()` - Panic 恢复
+- `fox.Recovery()` - Panic 恢复
 - `fox.Logger(config)` - 带配置的日志记录器
 
 ## 下一步

@@ -1,304 +1,149 @@
 ---
 title: 结构化日志
-description: 内置结构化日志，支持 TraceID 和上下文字段
+description: 内置 TraceID 和结构化字段日志
 head: []
 ---
 
 # 结构化日志
 
-Fox 包含一个生产就绪的结构化日志系统，具有自动 TraceID 生成、上下文字段和日志轮转功能。
+Fox 提供请求日志中间件，以及基于 zerolog 的 `logger` 包。日志中间件会创建或复用 `x-request-id`，把请求日志器保存到 `*fox.Context`，并在处理器结束后输出一条请求日志。
 
 ## 基本用法
-
-### 从上下文获取日志记录器
 
 ```go
 r := fox.Default()
 
-r.GET("/user/:id", func(c *gin.Context, id int) (*User, error) {
-    logger := fox.GetLogger(c)
+r.GET("/user/:id", func(ctx *fox.Context) (*User, error) {
+    log := ctx.Logger
+    id := ctx.Param("id")
 
-    logger.Info("获取用户", "user_id", id)
+    log.WithField("user_id", id).Info("fetching user")
 
     user, err := getUserByID(id)
     if err != nil {
-        logger.Error("获取用户失败", "user_id", id, "error", err)
+        log.WithError(err).Error("failed to fetch user")
         return nil, err
     }
 
-    logger.Info("用户获取成功", "user_id", id)
     return user, nil
 })
 ```
 
-### 自动 TraceID
-
-每个请求自动获得用于请求跟踪的唯一 TraceID：
+`fox.Default()` 会安装 `fox.Logger()`、`fox.NewXResponseTimer()` 和 `fox.Recovery()`。如果使用 `fox.New()`，需要显式添加中间件：
 
 ```go
-r.GET("/process", func(c *gin.Context) error {
-    logger := fox.GetLogger(c)
+r := fox.New()
+r.Use(fox.Logger())
+```
 
-    // TraceID 自动包含在日志中
-    logger.Info("处理开始")
+## TraceID
 
-    // 调用另一个服务
-    result, err := processData()
+Fox 使用 `x-request-id` 请求头作为 TraceID。如果请求没有携带该请求头，日志中间件会生成一个，并写回响应头。
 
-    logger.Info("处理完成", "result", result)
-    return err
+```go
+r.GET("/trace", func(ctx *fox.Context) map[string]string {
+    return map[string]string{
+        "trace_id": ctx.TraceID(),
+    }
 })
 ```
 
-输出：
-```
-{"level":"info","trace_id":"abc123","msg":"处理开始","time":"2024-01-01T10:00:00Z"}
-{"level":"info","trace_id":"abc123","result":"success","msg":"处理完成","time":"2024-01-01T10:00:01Z"}
-```
-
-## 配置
-
-### 基本配置
+也可以从带有 TraceID 的 context 创建日志器：
 
 ```go
-config := fox.LoggerConfig{
-    Level:      "info",           // 日志级别: debug, info, warn, error
-    Output:     "stdout",         // 输出: stdout, stderr, 或文件路径
-    Format:     "json",           // 格式: json 或 text
-    TimeFormat: time.RFC3339,     // 时间戳格式
-}
-
-r := fox.New(fox.WithLoggerConfig(config))
+log := logger.NewWithContext(ctx.Context)
 ```
 
-### 文件轮转
+## 日志配置
+
+在创建请求日志器之前，先配置全局 logger：
 
 ```go
-config := fox.LoggerConfig{
-    Level:      "info",
-    Output:     "/var/log/app.log",
-    MaxSize:    100,   // 轮转前的最大大小（MB）
-    MaxBackups: 7,     // 保留的旧日志文件数量
-    MaxAge:     30,    // 保留旧日志文件的最大天数
-    Compress:   true,  // 压缩轮转的文件
-}
+import "github.com/fox-gonic/fox/logger"
 
-r := fox.New(fox.WithLoggerConfig(config))
+logger.SetConfig(&logger.Config{
+    LogLevel:              logger.InfoLevel,
+    ConsoleLoggingEnabled: true,
+    EncodeLogsAsJSON:      true,
+})
 ```
+
+### 文件日志
+
+Fox 可以通过 lumberjack 写入轮转日志文件：
+
+```go
+logger.SetConfig(&logger.Config{
+    LogLevel:              logger.InfoLevel,
+    ConsoleLoggingEnabled: false,
+    FileLoggingEnabled:    true,
+    Filename:              "./logs/app.log",
+    MaxSize:               100, // MB
+    MaxBackups:            7,
+    MaxAge:                30,  // 天
+    EncodeLogsAsJSON:      true,
+})
+```
+
+如果开启文件日志但没有设置 `Filename`，Fox 会在临时目录中创建一个以进程名命名的日志文件。
 
 ## 结构化字段
 
-### 添加上下文字段
+使用 `WithField`、`WithFields` 和 `WithError` 添加上下文字段：
 
 ```go
-r.POST("/order", func(c *gin.Context, req *CreateOrderRequest) (*Order, error) {
-    logger := fox.GetLogger(c)
-
-    logger.Info("创建订单",
-        "user_id", req.UserID,
-        "items_count", len(req.Items),
-        "total_amount", req.TotalAmount,
-    )
-
-    order, err := createOrder(req)
-
-    if err != nil {
-        logger.Error("订单创建失败",
-            "user_id", req.UserID,
-            "error", err,
-            "reason", "database_error",
-        )
-        return nil, err
-    }
-
-    logger.Info("订单创建成功",
-        "order_id", order.ID,
-        "user_id", req.UserID,
-    )
-
-    return order, nil
+log := ctx.Logger.WithFields(map[string]any{
+    "user_id": req.UserID,
+    "action":  "create_order",
 })
+
+order, err := createOrder(req)
+if err != nil {
+    log.WithError(err).Error("order creation failed")
+    return nil, err
+}
+
+log.WithField("order_id", order.ID).Info("order created")
 ```
 
-### 嵌套结构
+日志器也支持格式化消息：
 
 ```go
-logger.Info("用户操作",
-    "user", map[string]any{
-        "id":       user.ID,
-        "email":    user.Email,
-        "role":     user.Role,
-    },
-    "action", "purchase",
-    "metadata", map[string]any{
-        "ip":         c.ClientIP(),
-        "user_agent": c.Request.UserAgent(),
-    },
-)
+ctx.Logger.Infof("created user %d", user.ID)
 ```
+
+## 请求日志中间件
+
+`fox.Logger()` 接收带 `SkipPaths` 的 `fox.LoggerConfig`：
+
+```go
+r.Use(fox.Logger(fox.LoggerConfig{
+    SkipPaths: []string{"/health", "/metrics"},
+}))
+```
+
+该中间件会记录 method、path、client IP、响应状态码、耗时，以及固定值为 `ENGINE` 的 `type` 字段。
 
 ## 日志级别
 
-```go
-logger := fox.GetLogger(c)
+`github.com/fox-gonic/fox/logger` 暴露这些级别：
 
-logger.Debug("详细调试信息", "key", "value")
-logger.Info("一般信息", "status", "ok")
-logger.Warn("警告消息", "issue", "deprecated_api")
-logger.Error("发生错误", "error", err)
-```
-
-## 中间件集成
-
-### 自定义上下文字段
-
-向请求中的所有日志添加字段：
-
-```go
-func TenantMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        tenantID := extractTenantID(c)
-
-        // 向日志上下文添加 tenant_id
-        logger := fox.GetLogger(c)
-        logger = logger.With("tenant_id", tenantID)
-        fox.SetLogger(c, logger)
-
-        c.Next()
-    }
-}
-
-r := fox.Default()
-r.Use(TenantMiddleware())
-```
-
-### 请求日志中间件
-
-```go
-func RequestLoggerMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        start := time.Now()
-        path := c.Request.URL.Path
-
-        logger := fox.GetLogger(c)
-        logger.Info("请求开始",
-            "method", c.Request.Method,
-            "path", path,
-        )
-
-        c.Next()
-
-        latency := time.Since(start)
-        logger.Info("请求完成",
-            "method", c.Request.Method,
-            "path", path,
-            "status", c.Writer.Status(),
-            "latency_ms", latency.Milliseconds(),
-        )
-    }
-}
-```
-
-## 错误跟踪
-
-### 带堆栈跟踪的日志
-
-```go
-func handler(c *gin.Context) error {
-    logger := fox.GetLogger(c)
-
-    err := someOperation()
-    if err != nil {
-        // 记录堆栈跟踪
-        logger.Error("操作失败",
-            "error", err,
-            "stack", string(debug.Stack()),
-        )
-        return err
-    }
-
-    return nil
-}
-```
+- `logger.DebugLevel`
+- `logger.InfoLevel`
+- `logger.WarnLevel`
+- `logger.ErrorLevel`
+- `logger.FatalLevel`
+- `logger.PanicLevel`
 
 ## 最佳实践
 
-1. **使用结构化字段** - 不要将字符串连接到消息中
-   ```go
-   // ❌ 不好
-   logger.Info("用户 " + userID + " 创建了订单 " + orderID)
-
-   // ✅ 好
-   logger.Info("订单创建", "user_id", userID, "order_id", orderID)
-   ```
-
-2. **在适当级别记录日志**
-   - `Debug`：用于调试的详细信息
-   - `Info`：一般操作信息
-   - `Warn`：潜在问题的警告消息
-   - `Error`：需要注意的错误条件
-
-3. **包含相关上下文**
-   ```go
-   logger.Error("数据库查询失败",
-       "query", sqlQuery,
-       "params", params,
-       "error", err,
-       "duration_ms", duration.Milliseconds(),
-   )
-   ```
-
-4. **不要记录敏感数据** - 避免记录密码、令牌、PII
-   ```go
-   // ❌ 不好
-   logger.Info("登录", "password", password)
-
-   // ✅ 好
-   logger.Info("登录尝试", "username", username)
-   ```
-
-5. **使用 TraceID 进行分布式跟踪** - 将 TraceID 传递给外部服务
-
-## 与外部服务集成
-
-### 发送日志到外部服务
-
-```go
-type ExternalLoggerHook struct {
-    client *http.Client
-    url    string
-}
-
-func (h *ExternalLoggerHook) Levels() []logrus.Level {
-    return logrus.AllLevels
-}
-
-func (h *ExternalLoggerHook) Fire(entry *logrus.Entry) error {
-    // 发送日志到外部服务（Elasticsearch、Splunk 等）
-    return h.sendLog(entry)
-}
-```
-
-### 与指标关联
-
-```go
-r.GET("/api/data", func(c *gin.Context) (any, error) {
-    logger := fox.GetLogger(c)
-    traceID := fox.GetTraceID(c)
-
-    // 在指标标签中使用 TraceID
-    metrics.Increment("api.requests", map[string]string{
-        "trace_id": traceID,
-        "endpoint": "/api/data",
-    })
-
-    logger.Info("API 调用", "endpoint", "/api/data")
-
-    return getData()
-})
-```
+1. 在 Fox 处理器中使用 `ctx.Logger`，让业务日志共享请求 TraceID。
+2. 用 `WithField` 或 `WithFields` 添加结构化字段，避免把值拼接到消息字符串中。
+3. 不要记录密码、令牌、密钥或敏感个人信息。
+4. 在应用启动时调用 `logger.SetConfig`，不要等到请求处理中再配置。
+5. 对健康检查、指标等高频端点使用 `SkipPaths`。
 
 ## 下一步
 
-- [参数绑定](/zh-cn/features/binding/) - 自动请求绑定
-- [验证](/zh-cn/features/validation/) - 带日志的自定义验证
+- [日志配置](/zh-cn/examples/logger-config/) - 完整配置示例
+- [错误处理](/zh-cn/examples/error-handling/) - 记录并返回错误

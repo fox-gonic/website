@@ -36,25 +36,25 @@ var (
 	ErrUserNotFound = &httperrors.Error{
 		HTTPCode: http.StatusNotFound,
 		Code:     "USER_NOT_FOUND",
-		Message:  "User not found",
+		Err:      errors.New("user not found"),
 	}
 
 	ErrInsufficientBalance = &httperrors.Error{
 		HTTPCode: http.StatusPaymentRequired,
 		Code:     "INSUFFICIENT_BALANCE",
-		Message:  "Insufficient account balance",
+		Err:      errors.New("insufficient account balance"),
 	}
 
 	ErrDuplicateEmail = &httperrors.Error{
 		HTTPCode: http.StatusConflict,
 		Code:     "DUPLICATE_EMAIL",
-		Message:  "Email already exists",
+		Err:      errors.New("email already exists"),
 	}
 
 	ErrInvalidCredentials = &httperrors.Error{
 		HTTPCode: http.StatusUnauthorized,
 		Code:     "INVALID_CREDENTIALS",
-		Message:  "Invalid username or password",
+		Err:      errors.New("invalid username or password"),
 	}
 )
 
@@ -66,7 +66,7 @@ type User struct {
 }
 
 func main() {
-	router := fox.New()
+	router := fox.Default()
 
 	// 1. 简单错误
 	router.GET("/error/simple", func() (string, error) {
@@ -182,8 +182,8 @@ func main() {
 		return "", &httperrors.Error{
 			HTTPCode: http.StatusUnprocessableEntity,
 			Code:     "VALIDATION_FAILED",
-			Message:  "Validation failed",
-			Details: map[string]any{
+			Err:      errors.New("validation failed"),
+			Fields: map[string]any{
 				"fields": []map[string]string{
 					{"field": "email", "error": "invalid format"},
 					{"field": "age", "error": "must be at least 18"},
@@ -217,11 +217,10 @@ go run main.go
 curl http://localhost:8080/error/simple
 ```
 
-响应:
-```json
-{
-  "error": "something went wrong"
-}
+响应：状态码为 `400 Bad Request` 的纯文本。
+
+```text
+something went wrong
 ```
 
 ### HTTP 错误
@@ -234,7 +233,8 @@ curl http://localhost:8080/error/http
 ```json
 {
   "code": "INVALID_REQUEST",
-  "error": "invalid request parameters"
+  "error": "(400): invalid request parameters",
+  "meta": "invalid request parameters"
 }
 ```
 
@@ -248,7 +248,8 @@ curl http://localhost:8080/user/999
 ```json
 {
   "code": "USER_NOT_FOUND",
-  "message": "User not found"
+  "error": "(404): user not found",
+  "meta": "user not found"
 }
 ```
 
@@ -268,7 +269,8 @@ curl -X POST http://localhost:8080/transfer \
 ```json
 {
   "code": "INSUFFICIENT_BALANCE",
-  "message": "Insufficient account balance"
+  "error": "(402): insufficient account balance",
+  "meta": "insufficient account balance"
 }
 ```
 
@@ -287,7 +289,8 @@ curl -X POST http://localhost:8080/login \
 ```json
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "Invalid username or password"
+  "error": "(401): invalid username or password",
+  "meta": "invalid username or password"
 }
 ```
 
@@ -306,7 +309,8 @@ curl -X POST http://localhost:8080/signup \
 ```json
 {
   "code": "DUPLICATE_EMAIL",
-  "message": "Email already exists"
+  "error": "(409): email already exists",
+  "meta": "email already exists"
 }
 ```
 
@@ -320,13 +324,12 @@ curl http://localhost:8080/detailed-error
 ```json
 {
   "code": "VALIDATION_FAILED",
-  "message": "Validation failed",
-  "details": {
-    "fields": [
-      {"field": "email", "error": "invalid format"},
-      {"field": "age", "error": "must be at least 18"}
-    ]
-  }
+  "error": "(422): validation failed",
+  "fields": [
+    {"field": "email", "error": "invalid format"},
+    {"field": "age", "error": "must be at least 18"}
+  ],
+  "meta": "validation failed"
 }
 ```
 
@@ -347,7 +350,7 @@ curl http://localhost:8080/panic
 
 ### 1. 简单错误
 
-返回基本错误消息,状态码为 500:
+返回纯文本，状态码为 Fox 默认错误状态码 `400 Bad Request`：
 
 ```go
 return "", errors.New("something went wrong")
@@ -373,8 +376,8 @@ return "", &httperrors.Error{
 return "", &httperrors.Error{
     HTTPCode: http.StatusUnprocessableEntity,
     Code:     "VALIDATION_FAILED",
-    Message:  "Validation failed",
-    Details:  map[string]any{
+    Err:      errors.New("validation failed"),
+    Fields:  map[string]any{
         "fields": []string{"email", "password"},
     },
 }

@@ -13,7 +13,7 @@ Fox automatically binds request parameters from various sources to your handler 
 Fox can bind parameters from:
 
 - **URI path parameters** - `/user/:id` (using `uri` tag)
-- **Query strings** - `?name=value` (using `query` or `form` tag)
+- **Query strings** - `?name=value` (using `query` tag)
 - **JSON request body** - `Content-Type: application/json` (using `json` tag)
 - **Form data** - `Content-Type: application/x-www-form-urlencoded` (using `form` tag)
 - **Headers** - Custom HTTP headers (using `header` tag)
@@ -27,14 +27,14 @@ type UserRequest struct {
     ID int `uri:"id" binding:"required"`
 }
 
-r.GET("/user/:id", func(req *UserRequest) (*User, error) {
+r.GET("/user/:id", func(_ *fox.Context, req *UserRequest) (*User, error) {
     return getUserByID(req.ID)
 })
 ```
 
 ### Query Parameters
 
-Fox supports both `form` and `query` tags for binding URL query parameters:
+Use the `query` tag for URL query parameters:
 
 ```go
 type SearchRequest struct {
@@ -43,14 +43,7 @@ type SearchRequest struct {
     Size  int    `query:"size"`
 }
 
-// Or use form tag (both work the same way)
-type SearchRequest struct {
-    Query string `form:"q" binding:"required"`   // Using form tag
-    Page  int    `form:"page"`
-    Size  int    `form:"size"`
-}
-
-r.GET("/search", func(req *SearchRequest) ([]Result, error) {
+r.GET("/search", func(_ *fox.Context, req *SearchRequest) ([]Result, error) {
     return search(req.Query, req.Page, req.Size)
 })
 ```
@@ -65,7 +58,7 @@ type CreateUserRequest struct {
     Password string `json:"password" binding:"required,min=8"`
 }
 
-r.POST("/users", func(req *CreateUserRequest) (*User, error) {
+r.POST("/users", func(_ *fox.Context, req *CreateUserRequest) (*User, error) {
     return createUser(req)
 })
 ```
@@ -81,7 +74,7 @@ type UpdateUserRequest struct {
     AuthUser string `header:"X-Auth-User" binding:"required"` // From header
 }
 
-r.PUT("/user/:id", func(req *UpdateUserRequest) error {
+r.PUT("/user/:id", func(_ *fox.Context, req *UpdateUserRequest) error {
     return updateUser(req.ID, req.Name, req.AuthUser)
 })
 ```
@@ -150,9 +143,9 @@ Use `omitempty` for optional fields:
 
 ```go
 type FilterRequest struct {
-    Name     string `form:"name"`                    // Optional, no validation
-    Category string `form:"category" binding:"omitempty,oneof=books electronics"`
-    MinPrice *int   `form:"min_price" binding:"omitempty,gte=0"`
+    Name     string `query:"name"`                    // Optional, no validation
+    Category string `query:"category" binding:"omitempty,oneof=books electronics"`
+    MinPrice *int   `query:"min_price" binding:"omitempty,gte=0"`
 }
 ```
 
@@ -162,11 +155,11 @@ Set default values in struct initialization:
 
 ```go
 type PaginationRequest struct {
-    Page int `form:"page"`
-    Size int `form:"size"`
+    Page int `query:"page"`
+    Size int `query:"size"`
 }
 
-r.GET("/items", func(req *PaginationRequest) ([]Item, error) {
+r.GET("/items", func(_ *fox.Context, req *PaginationRequest) ([]Item, error) {
     // Set defaults if not provided
     if req.Page == 0 {
         req.Page = 1
@@ -181,20 +174,22 @@ r.GET("/items", func(req *PaginationRequest) ([]Item, error) {
 
 ## Error Handling
 
-When binding or validation fails, Fox automatically returns a 400 error with details:
+When binding or validation fails, Fox returns a `BIND_ERROR` response with status `400 Bad Request` by default:
 
 ```json
 {
-  "error": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+  "code": "BIND_ERROR",
+  "error": "(400): Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag",
+  "meta": "Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
 }
 ```
 
 ### Custom Error Messages
 
-Implement custom error handling:
+Set `RenderErrorFunc` to customize automatic error responses:
 
 ```go
-r.SetErrorHandler(func(c *gin.Context, err error) {
+r.RenderErrorFunc = func(c *fox.Context, err error) {
     if validationErr, ok := err.(validator.ValidationErrors); ok {
         errors := make(map[string]string)
         for _, e := range validationErr {
@@ -204,7 +199,7 @@ r.SetErrorHandler(func(c *gin.Context, err error) {
         return
     }
     c.JSON(500, gin.H{"error": err.Error()})
-})
+}
 ```
 
 ## Type Conversion
@@ -214,9 +209,9 @@ Fox automatically converts string parameters to the target type:
 ```go
 type Request struct {
     ID      int       `uri:"id"`      // "123" -> 123
-    Active  bool      `form:"active"` // "true" -> true
-    Price   float64   `form:"price"`  // "19.99" -> 19.99
-    Date    time.Time `form:"date" time_format:"2006-01-02"`
+    Active  bool      `query:"active"` // "true" -> true
+    Price   float64   `query:"price"`  // "19.99" -> 19.99
+    Date    time.Time `query:"date" time_format:"2006-01-02"`
 }
 ```
 
