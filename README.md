@@ -2,7 +2,7 @@
 
 Official documentation website for the Fox web framework, built with [Astro](https://astro.build/) and [Starlight](https://starlight.astro.build/).
 
-🌐 **Live Site**: [https://fox-gonic.github.io](https://fox-gonic.github.io)
+🌐 **Live Site**: [https://fox-gonic.com](https://fox-gonic.com)
 
 ## ✨ Features
 
@@ -40,10 +40,19 @@ Fox is a powerful extension of Gin that provides:
 │   │       │   ├── router.md
 │   │       │   └── context.md
 │   │       ├── examples/              # Code examples
-│   │       │   └── basic.md
-│   │       └── zh-cn/                 # Chinese translations (11 files)
+│   │       │   ├── basic.md
+│   │       │   ├── binding.md
+│   │       │   ├── middleware.md
+│   │       │   ├── domain-routing.md
+│   │       │   ├── custom-validator.md
+│   │       │   ├── error-handling.md
+│   │       │   └── logger-config.md
+│   │       └── zh-cn/                 # Simplified Chinese translations (17 files)
 │   └── styles/
 │       └── custom.css
+├── .github/
+│   └── workflows/
+│       └── deploy.yml                 # GitHub Pages deployment
 ├── astro.config.mjs
 ├── package.json
 └── tsconfig.json
@@ -60,6 +69,14 @@ All commands are run from the root of the project, from a terminal:
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
 
+## 🚢 Deployment
+
+The site is built with Astro and deployed from the `main` branch to GitHub Pages with a custom domain:
+
+- Production URL: [https://fox-gonic.com](https://fox-gonic.com)
+- Canonical site URL: configured in `astro.config.mjs`
+- Deployment workflow: `.github/workflows/deploy.yml`
+
 ## 🌐 Supported Languages
 
 - English (en)
@@ -72,7 +89,7 @@ The documentation is organized into four main sections:
 - **Getting Started**: Introduction, Quick Start, Installation
 - **Features**: Parameter Binding, Multi-Domain Routing, Structured Logging, Validation
 - **API Reference**: Router, Context
-- **Examples**: Basic Usage
+- **Examples**: Basic Usage, Parameter Binding, Middleware, Domain Routing, Custom Validator, Error Handling, Logger Configuration
 
 All content is available in both English and Simplified Chinese.
 
